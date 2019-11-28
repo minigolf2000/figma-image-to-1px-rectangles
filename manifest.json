@@ -1,0 +1,7 @@
+{
+  "name": "Image to 1px rectangles",
+  "id": "781891133729199002",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html"
+}
