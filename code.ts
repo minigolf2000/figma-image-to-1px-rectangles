@@ -58,7 +58,13 @@ function rgbToHex(r: number, g: number, b: number) {
   return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
 }
 
-async function generateIfApplicable(node) {
+async function main(): Promise<string | undefined> {
+  // Make sure the selection is a single piece of text before proceeding.
+  if (figma.currentPage.selection.length !== 1) {
+    return "Please select a single node with a fill"
+  }
+
+  const node = figma.currentPage.selection[0]
   // Look for fills on node types that have fills.
   // An alternative would be to do `if ('fills' in node) { ... }
   switch (node.type) {
@@ -69,7 +75,7 @@ async function generateIfApplicable(node) {
     case 'VECTOR':
     case 'TEXT': {
       // Create a new array of fills, because we can't directly modify the old one
-      for (const paint of node.fills) {
+      for (const paint of (node as any).fills) {
         const frame = await createFrameContaining1PxRectangles(paint)
         if (frame) {
           frame.x = node.x + node.width + 1
@@ -87,7 +93,6 @@ async function generateIfApplicable(node) {
   }
 }
 
-// This plugin looks at all the currently selected nodes and inverts the colors
-// in their image, if they use an image paint.
-Promise.all(figma.currentPage.selection.map(selected => generateIfApplicable(selected)))
-       .then(() => figma.closePlugin())
+main().then((message: string | undefined) => {
+  figma.closePlugin(message)
+})
