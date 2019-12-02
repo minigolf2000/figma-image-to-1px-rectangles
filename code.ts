@@ -1,4 +1,4 @@
-async function createFrameContaining1PxRectangles(paint) {
+async function createGroupContaining1PxRectangles(paint) {
   // Only operate on images (but you could do it
   // for solid paints and gradients if you wanted)
   if (paint.type === 'IMAGE') {
@@ -25,9 +25,7 @@ async function createFrameContaining1PxRectangles(paint) {
       figma.ui.onmessage = value => resolve(value as {colors: RGBA[], width: number})
     })
 
-    const frame = figma.createFrame()
-    frame.backgrounds = []
-    frame.resizeWithoutConstraints(newBytes.width, newBytes.colors.length / newBytes.width)
+    const pixels: RectangleNode[] = []
     newBytes.colors.forEach((color: RGBA, i: number) => {
       const pixel = figma.createRectangle()
       pixel.fills = [{ type: 'SOLID', color: {r: color.r, g: color.g, b: color.b}, opacity: color.a }]
@@ -35,10 +33,10 @@ async function createFrameContaining1PxRectangles(paint) {
       pixel.y = Math.floor(i / newBytes.width)
       pixel.name = `${rgbToHex(color.r, color.g, color.b)}${displayOpacity(color.a)}`
       pixel.resizeWithoutConstraints(1, 1)
-      frame.appendChild(pixel)
+      pixels.push(pixel)
     })
 
-    return frame
+    return figma.group(pixels, figma.currentPage)
   }
   return null
 }
@@ -76,12 +74,13 @@ async function main(): Promise<string | undefined> {
     case 'TEXT': {
       // Create a new array of fills, because we can't directly modify the old one
       for (const paint of (node as any).fills) {
-        const frame = await createFrameContaining1PxRectangles(paint)
-        if (frame) {
-          frame.x = node.x + node.width + 1
-          frame.y = node.y
-          frame.name = `${node.name} 1px rectangles`
-          figma.currentPage.appendChild(frame)
+        const group = await createGroupContaining1PxRectangles(paint)
+        if (group) {
+          group.x = node.x
+          group.y = node.y
+          group.name = `${node.name} 1px rectangles`
+
+          node.remove()
         }
       }
       break
